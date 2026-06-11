@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import supabase from "@/lib/supabase";
 
-const Login = () => {
+const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,22 +14,30 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (authError) {
-      setError(authError.message);
-    } else if (data.session) {
-      navigate("/");
+
+    try {
+      const { user, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+      } else {
+        setError(null);
+        navigate("/");
+      }
+    } catch (err) {
+      setError("Erro ao criar conta");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full space-y-4 p-6 bg-white rounded-lg shadow">
-        <h2 className="text-2xl font-bold text-center">Login</h2>
+        <h2 className="text-2xl font-bold text-center">Cadastrar</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="email">
@@ -62,14 +70,14 @@ const Login = () => {
             disabled={loading}
             className="w-full py-2 px-4 rounded-md bg-primary text-white font-medium hover:bg-primary/90 disabled:opacity-50"
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? "Criando..." : "Cadastrar"}
           </button>
         </form>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <p className="text-center text-sm">
-          Não tem conta?{" "}
-          <Link to="/signup" className="text-primary hover:underline">
-            Cadastrar
+          Já tem conta?{" "}
+          <Link to="/login" className="text-primary hover:underline">
+            Entrar
           </Link>
         </p>
       </div>
@@ -77,4 +85,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
