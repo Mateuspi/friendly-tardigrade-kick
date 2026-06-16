@@ -3,57 +3,95 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState("");
 
+  // 🔹 Verificar login + buscar tarefas
   useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
 
-      if (error || !user) {
+      if (!data.user) {
         navigate("/login");
       } else {
+        fetchTasks(data.user);
         setLoading(false);
       }
     };
 
-    checkAuth();
-  }, [navigate]);
+    checkUser();
+  }, []);
+
+  // 🔹 Buscar tarefas
+  const fetchTasks = async (user) => {
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (data) setTasks(data);
+  };
+
+  // 🔹 Adicionar tarefa
+  const addTask = async () => {
+    if (!newTask) return;
+
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+
+    await supabase.from("tasks").insert([
+      {
+        title: newTask,
+        user_id: user.id,
+      },
+    ]);
+
+    setNewTask("");
+    fetchTasks(user);
+  };
+
+  // 🔹 Logout
+  const logout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-lg">Carregando...</p>
-      </div>
-    );
+    return <p>Carregando...</p>;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Você está logado ✅</h1>
-        <p className="text-xl text-gray-600">
-          Bem-vindo ao seu app To Do!
-        </p>
+    <div style={{ padding: "20px" }}>
+      <h1>Meu To Do ✅</h1>
 
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate("/login");
-          }}
-          className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-        >
-          Sair
-        </button>
-      </div>
+      <button onClick={logout}>Sair</button>
 
-      <MadeWithDyad />
+      <hr />
+
+      <h3>Nova tarefa</h3>
+
+      <input
+        placeholder="Digite sua tarefa"
+        value={newTask}
+        onChange={(e) => setNewTask(e.target.value)}
+      />
+
+      <button onClick={addTask}>Adicionar</button>
+
+      <hr />
+
+      <h3>Minhas tarefas</h3>
+
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>{task.title}</li>
+        ))}
+      </ul>
     </div>
   );
 };
