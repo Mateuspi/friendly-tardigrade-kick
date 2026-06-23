@@ -55,20 +55,39 @@ const Index = () => {
     fetchTasks(user);
   };
 
-  // ✅ excluir tarefa
+  // ✅ EXCLUIR COM CONFIRMAÇÃO ✅
   const deleteTask = async (id) => {
+    const confirmar = window.confirm("Tem certeza que deseja excluir esta tarefa?");
+
+    if (!confirmar) return;
+
     await supabase.from("tasks").delete().eq("id", id);
 
     const { data } = await supabase.auth.getUser();
     fetchTasks(data.user);
   };
 
-  // ✅ marcar como concluída
+  // ✅ MARCAR COMO CONCLUÍDA
   const toggleCompleted = async (id, currentStatus) => {
     await supabase
       .from("tasks")
       .update({ completed: !currentStatus })
       .eq("id", id);
+
+    const { data } = await supabase.auth.getUser();
+    fetchTasks(data.user);
+  };
+
+  // ✅ EDITAR TAREFA ✅
+  const editTask = async (task) => {
+    const novoTitulo = prompt("Editar tarefa:", task.title);
+
+    if (!novoTitulo) return;
+
+    await supabase
+      .from("tasks")
+      .update({ title: novoTitulo })
+      .eq("id", task.id);
 
     const { data } = await supabase.auth.getUser();
     fetchTasks(data.user);
@@ -163,26 +182,40 @@ const Index = () => {
               onClick={() => toggleCompleted(task.id, task.completed)}
               style={{
                 cursor: "pointer",
-                textDecoration: task.completed
-                  ? "line-through"
-                  : "none",
+                textDecoration: task.completed ? "line-through" : "none",
               }}
             >
               {task.completed ? "✅" : "⬜"} {task.title}
             </span>
 
-            <button
-              onClick={() => deleteTask(task.id)}
-              style={{
-                background: "red",
-                color: "white",
-                border: "none",
-                padding: "5px",
-                borderRadius: "5px",
-              }}
-            >
-              Excluir
-            </button>
+            <div>
+              <button
+                onClick={() => editTask(task)}
+                style={{
+                  background: "orange",
+                  color: "white",
+                  border: "none",
+                  padding: "5px",
+                  borderRadius: "5px",
+                  marginRight: "5px",
+                }}
+              >
+                Editar
+              </button>
+
+              <button
+                onClick={() => deleteTask(task.id)}
+                style={{
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  padding: "5px",
+                  borderRadius: "5px",
+                }}
+              >
+                Excluir
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -191,4 +224,3 @@ const Index = () => {
 };
 
 export default Index;
-``
