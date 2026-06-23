@@ -9,6 +9,7 @@ const Index = () => {
 
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
+  const [deletedTasks, setDeletedTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
 
   // ✅ verificar usuário
@@ -27,17 +28,20 @@ const Index = () => {
     checkUser();
   }, []);
 
-  // ✅ buscar tarefas
+  // ✅ buscar tarefas (ativas + deletadas)
   const fetchTasks = async (user) => {
     const { data } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", user.id);
 
-    if (data) setTasks(data);
+    if (data) {
+      setTasks(data.filter((t) => !t.deleted));
+      setDeletedTasks(data.filter((t) => t.deleted));
+    }
   };
 
-  // ✅ adicionar tarefa
+  // ✅ adicionar trabalho
   const addTask = async () => {
     if (!newTask) return;
 
@@ -48,6 +52,7 @@ const Index = () => {
       {
         title: newTask,
         user_id: user.id,
+        deleted: false,
       },
     ]);
 
@@ -55,19 +60,32 @@ const Index = () => {
     fetchTasks(user);
   };
 
-  // ✅ EXCLUIR COM CONFIRMAÇÃO ✅
+  // ✅ SOFT DELETE (com confirmação)
   const deleteTask = async (id) => {
-    const confirmar = window.confirm("Tem certeza que deseja excluir esta tarefa?");
-
+    const confirmar = window.confirm("Tem certeza que deseja excluir este trabalho?");
     if (!confirmar) return;
 
-    await supabase.from("tasks").delete().eq("id", id);
+    await supabase
+      .from("tasks")
+      .update({ deleted: true })
+      .eq("id", id);
 
     const { data } = await supabase.auth.getUser();
     fetchTasks(data.user);
   };
 
-  // ✅ MARCAR COMO CONCLUÍDA
+  // ✅ RESTAURAR
+  const restoreTask = async (id) => {
+    await supabase
+      .from("tasks")
+      .update({ deleted: false })
+      .eq("id", id);
+
+    const { data } = await supabase.auth.getUser();
+    fetchTasks(data.user);
+  };
+
+  // ✅ marcar concluído
   const toggleCompleted = async (id, currentStatus) => {
     await supabase
       .from("tasks")
@@ -78,10 +96,9 @@ const Index = () => {
     fetchTasks(data.user);
   };
 
-  // ✅ EDITAR TAREFA ✅
+  // ✅ editar
   const editTask = async (task) => {
-    const novoTitulo = prompt("Editar tarefa:", task.title);
-
+    const novoTitulo = prompt("Editar trabalho:", task.title);
     if (!novoTitulo) return;
 
     await supabase
@@ -106,119 +123,162 @@ const Index = () => {
   return (
     <div
       style={{
-        maxWidth: "500px",
-        margin: "50px auto",
-        padding: "20px",
-        border: "1px solid #ccc",
-        borderRadius: "10px",
-        background: "#fff",
-        textAlign: "center",
+        minHeight: "100vh",
+        background: "#f0f2f5",
+        paddingTop: "50px",
         fontFamily: "Arial",
       }}
     >
-      <h1>Meu To Do ✅</h1>
-
-      <button
-        onClick={logout}
+      <div
         style={{
-          marginBottom: "15px",
-          padding: "5px 10px",
-          background: "red",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
+          maxWidth: "500px",
+          margin: "auto",
+          padding: "20px",
+          borderRadius: "12px",
+          background: "#ffffff",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          textAlign: "center",
         }}
       >
-        Sair
-      </button>
-
-      <h3>Nova tarefa</h3>
-
-      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-        <input
-          placeholder="Digite sua tarefa"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
+        <h1>📘 Controle de Trabalhos</h1>
 
         <button
-          onClick={addTask}
+          onClick={logout}
           style={{
-            padding: "8px",
-            background: "blue",
+            marginBottom: "20px",
+            padding: "6px 12px",
+            background: "#ff4d4d",
             color: "white",
             border: "none",
-            borderRadius: "5px",
+            borderRadius: "6px",
+            cursor: "pointer",
           }}
         >
-          Adicionar
+          Sair
         </button>
-      </div>
 
-      <h3>Minhas tarefas</h3>
+        <h3>Novo trabalho</h3>
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {tasks.map((task) => (
-          <li
-            key={task.id}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+          <input
+            placeholder="Digite seu trabalho"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+          />
+
+          <button
+            onClick={addTask}
             style={{
               padding: "10px",
-              border: "1px solid #ccc",
-              marginBottom: "8px",
-              borderRadius: "8px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "#f9f9f9",
+              background: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
             }}
           >
-            <span
-              onClick={() => toggleCompleted(task.id, task.completed)}
+            Adicionar
+          </button>
+        </div>
+
+        <h3>Meus trabalhos</h3>
+
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {tasks.map((task) => (
+            <li
+              key={task.id}
               style={{
-                cursor: "pointer",
-                textDecoration: task.completed ? "line-through" : "none",
+                padding: "12px",
+                border: "1px solid #ddd",
+                marginBottom: "10px",
+                borderRadius: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#fafafa",
               }}
             >
-              {task.completed ? "✅" : "⬜"} {task.title}
-            </span>
-
-            <div>
-              <button
-                onClick={() => editTask(task)}
+              <span
+                onClick={() => toggleCompleted(task.id, task.completed)}
                 style={{
-                  background: "orange",
-                  color: "white",
-                  border: "none",
-                  padding: "5px",
-                  borderRadius: "5px",
-                  marginRight: "5px",
+                  cursor: "pointer",
+                  textDecoration: task.completed ? "line-through" : "none",
                 }}
               >
-                Editar
-              </button>
+                {task.completed ? "✅" : "⬜"} {task.title}
+              </span>
+
+              <div style={{ display: "flex", gap: "5px" }}>
+                <button
+                  onClick={() => editTask(task)}
+                  style={{
+                    background: "#ffa500",
+                    color: "white",
+                    border: "none",
+                    padding: "6px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Editar
+                </button>
+
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  style={{
+                    background: "#dc3545",
+                    color: "white",
+                    border: "none",
+                    padding: "6px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Excluir
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <h3>Trabalhos excluídos</h3>
+
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {deletedTasks.map((task) => (
+            <li
+              key={task.id}
+              style={{
+                marginBottom: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ color: "#999" }}>{task.title}</span>
 
               <button
-                onClick={() => deleteTask(task.id)}
+                onClick={() => restoreTask(task.id)}
                 style={{
-                  background: "red",
+                  background: "#28a745",
                   color: "white",
                   border: "none",
-                  padding: "5px",
+                  padding: "6px",
                   borderRadius: "5px",
+                  cursor: "pointer",
                 }}
               >
-                Excluir
+                Restaurar
               </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
