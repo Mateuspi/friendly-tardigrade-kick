@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { Check, Trash2, RotateCcw, Edit2, AlertTriangle } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -43,14 +44,14 @@ const Index = () => {
 
   // ✅ adicionar trabalho
   const addTask = async () => {
-    if (!newTask) return;
+    if (!newTask.trim()) return;
 
     const { data } = await supabase.auth.getUser();
     const user = data.user;
 
     await supabase.from("tasks").insert([
       {
-        title: newTask,
+        title: newTask.trim(),
         user_id: user.id,
         deleted: false,
       },
@@ -99,11 +100,11 @@ const Index = () => {
   // ✅ editar
   const editTask = async (task) => {
     const novoTitulo = prompt("Editar trabalho:", task.title);
-    if (!novoTitulo) return;
+    if (!novoTitulo || !novoTitulo.trim()) return;
 
     await supabase
       .from("tasks")
-      .update({ title: novoTitulo })
+      .update({ title: novoTitulo.trim() })
       .eq("id", task.id);
 
     const { data } = await supabase.auth.getUser();
@@ -117,167 +118,129 @@ const Index = () => {
   };
 
   if (loading) {
-    return <p style={{ textAlign: "center" }}>Carregando...</p>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-lg font-medium text-gray-700">Carregando...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f0f2f5",
-        paddingTop: "50px",
-        fontFamily: "Arial",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "500px",
-          margin: "auto",
-          padding: "20px",
-          borderRadius: "12px",
-          background: "#ffffff",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-          textAlign: "center",
-        }}
-      >
-        <h1>📘 Controle de Trabalhos</h1>
-
-        <button
-          onClick={logout}
-          style={{
-            marginBottom: "20px",
-            padding: "6px 12px",
-            background: "#ff4d4d",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          Sair
-        </button>
-
-        <h3>Novo trabalho</h3>
-
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-          <input
-            placeholder="Digite seu trabalho"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-            }}
-          />
-
-          <button
-            onClick={addTask}
-            style={{
-              padding: "10px",
-              background: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Adicionar
-          </button>
-        </div>
-
-        <h3>Meus trabalhos</h3>
-
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {tasks.map((task) => (
-            <li
-              key={task.id}
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                marginBottom: "10px",
-                borderRadius: "8px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                background: "#fafafa",
-              }}
-            >
-              <span
-                onClick={() => toggleCompleted(task.id, task.completed)}
-                style={{
-                  cursor: "pointer",
-                  textDecoration: task.completed ? "line-through" : "none",
-                }}
-              >
-                {task.completed ? "✅" : "⬜"} {task.title}
-              </span>
-
-              <div style={{ display: "flex", gap: "5px" }}>
-                <button
-                  onClick={() => editTask(task)}
-                  style={{
-                    background: "#ffa500",
-                    color: "white",
-                    border: "none",
-                    padding: "6px",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  style={{
-                    background: "#dc3545",
-                    color: "white",
-                    border: "none",
-                    padding: "6px",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Excluir
-                </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-6 py-8">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <Check className="h-5 w-5 text-white" />
               </div>
-            </li>
-          ))}
-        </ul>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Controle de Trabalhos</h1>
+                <p className="text-sm text-gray-500">Gerencie suas tarefas com estilo</p>
+              </div>
+            </div>
 
-        <h3>Trabalhos excluídos</h3>
-
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {deletedTasks.map((task) => (
-            <li
-              key={task.id}
-              style={{
-                marginBottom: "8px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
+            <button
+              onClick={logout}
+              className="w-full mb-6 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
             >
-              <span style={{ color: "#999" }}>{task.title}</span>
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              Sair
+            </button>
 
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Novo trabalho</h2>
+
+            <div className="flex gap-3 mb-6">
+              <input
+                placeholder="Digite seu trabalho"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              />
               <button
-                onClick={() => restoreTask(task.id)}
-                style={{
-                  background: "#28a745",
-                  color: "white",
-                  border: "none",
-                  padding: "6px",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                }}
+                onClick={addTask}
+                className="px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
               >
-                Restaurar
+                <Check className="h-4 w-4" />
+                Adicionar
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Meus trabalhos</h2>
+            {tasks.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">Nenhum trabalho adicionado ainda. Comece adicionando uma tarefa acima!</p>
+            ) : (
+              <ul className="space-y-3">
+                {tasks.map((task) => (
+                  <li
+                    key={task.id}
+                    className="bg-gray-50 hover:bg-gray-100 transition-colors duration-200 p-4 rounded-lg border border-gray-200 hover:border-gray-300 flex items-center space-x-3"
+                  >
+                    <div className="flex-1 flex items-center space-x-3">
+                      <div className="h-8 w-8 flex items-center justify-center rounded-lg">
+                        {task.completed ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <div className="h-4 w-4 border-2 border-dashed border-gray-400 rounded-full" />
+                        )}
+                      </div>
+                      <span
+                        onClick={() => toggleCompleted(task.id, task.completed)}
+                        className={`cursor-pointer flex-1 text-left ${task.completed ? "line-through text-gray-500" : ""}`}
+                      >
+                        {task.title}
+                      </span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => editTask(task)}
+                        className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        Editar
+                      </button>
+
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Excluir
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <h2 className="text-xl font-semibold text-gray-700 mt-8 mb-4">Trabalhos excluídos</h2>
+            {deletedTasks.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">Nenhum trabalho excluído.</p>
+            ) : (
+              <ul className="space-y-2">
+                {deletedTasks.map((task) => (
+                  <li
+                    key={task.id}
+                    className="bg-red-50 hover:bg-red-100 transition-colors duration-200 p-3 rounded-lg border border-red-200 hover:border-red-300 flex items-center justify-between"
+                  >
+                    <span className="text-red-600 line-through">{task.title}</span>
+                    <button
+                      onClick={() => restoreTask(task.id)}
+                      className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Restaurar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
